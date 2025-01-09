@@ -1,11 +1,10 @@
 ﻿using EventFlow.Extensions;
 using PMI.Commands;
-using PMI.Commands.CommandHandlers;
-using PMI.Domain;
 using PMI.Domain.Commands;
 using PMI.Domain.Events;
 using PMI.Domain.ReadModels;
 using PMI.Queries;
+using PMI.Services;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,12 +12,11 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 
 builder.Services.AddEventFlow(ef => ef
-    .AddEvents(typeof(CreatedAccountEvent), typeof(DepositedMoneyEvent))
-    .AddCommands(typeof(CreateAccountCommand))
-    .AddCommandHandlers(typeof(CreateAccountCommandHandler))
+    .AddDefaults(typeof(Program).Assembly) // Adds all events, entities etc.
     .UseInMemoryReadStoreFor<AccountReadModel>()
+    .UseInMemoryReadStoreFor<LedgerReadModel>()
 );
-
+builder.Services.AddSingleton<LedgerSingletonService>();
 builder.Services.AddTransient<CommandService>();
 builder.Services.AddTransient<QueryService>();
 

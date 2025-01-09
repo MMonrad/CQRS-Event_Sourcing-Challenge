@@ -1,39 +1,54 @@
 ﻿using EventFlow.Aggregates;
 using EventFlow.ReadStores;
+using PMI.Domain.AccountModel;
 using PMI.Domain.Events;
-using PMI.Domain.Models;
+using PMI.Domain.TransactionModel;
 
 namespace PMI.Domain.ReadModels;
 
 public class AccountReadModel : IReadModel,
-    IAmReadModelFor<AccountAggregate, AccountId, CreatedAccountEvent>,
-    IAmReadModelFor<AccountAggregate, AccountId, DepositedMoneyEvent>
+    IAmReadModelFor<AccountAggregate, AccountId, AccountCreatedEvent>,
+    IAmReadModelFor<AccountAggregate, AccountId, MoneyDepositedEvent>,
+    IAmReadModelFor<AccountAggregate, AccountId, MoneyWithdrawnEvent>
 {
-    public string AccountId { get; private set; }
-    public double Balance { get; private set; }
+    public AccountId AccountId { get; private set; }
+    public decimal Balance { get; private set; }
+    public List<Transaction> Transactions { get; private set; }
 
     private int Version { get; set; }
 
     public Task ApplyAsync(IReadModelContext context,
-        IDomainEvent<AccountAggregate, AccountId, CreatedAccountEvent> domainEvent, CancellationToken cancellationToken)
+        IDomainEvent<AccountAggregate, AccountId, AccountCreatedEvent> domainEvent, CancellationToken cancellationToken)
     {
-        AccountId = domainEvent.GetIdentity().Value;
+        AccountId = (AccountId)domainEvent.GetIdentity();
         Balance = 0;
+        Transactions = [];
         Version = domainEvent.AggregateSequenceNumber;
         return Task.CompletedTask;
     }
 
     public Task ApplyAsync(IReadModelContext context,
-        IDomainEvent<AccountAggregate, AccountId, DepositedMoneyEvent> domainEvent, CancellationToken cancellationToken)
+        IDomainEvent<AccountAggregate, AccountId, MoneyDepositedEvent> domainEvent, CancellationToken cancellationToken)
     {
-        AccountId = domainEvent.GetIdentity().Value;
-        Balance = domainEvent.AggregateEvent.Amount;
+        AccountId = (AccountId)domainEvent.GetIdentity();
+        Transactions.Add(domainEvent.AggregateEvent.Transaction);
+        Balance += domainEvent.AggregateEvent.Transaction.Amount;
         Version = domainEvent.AggregateSequenceNumber;
         return Task.CompletedTask;
     }
 
-    public Task<Account> ToAccount()
+    public Task ApplyAsync(IReadModelContext context,
+        IDomainEvent<AccountAggregate, AccountId, MoneyWithdrawnEvent> domainEvent, CancellationToken cancellationToken)
     {
-        return Task.FromResult(new Account(AccountId, Version, Balance));
+        AccountId = (AccountId)domainEvent.GetIdentity();
+        Transactions.Add(domainEvent.AggregateEvent.Transaction);
+        Balance -= domainEvent.AggregateEvent.Transaction.Amount;
+        Version = domainEvent.AggregateSequenceNumber;
+        return Task.CompletedTask;
+    }
+
+    public AccountStatement ToAccountStatement()
+    {
+        return new AccountStatement(AccountId.Value, Balance, Transactions, Version);
     }
 }

@@ -2,12 +2,12 @@
 using EventFlow.ValueObjects;
 using Newtonsoft.Json;
 
-namespace PMI.Domain;
+namespace PMI.Domain.LedgerEntryModel;
 
 [JsonConverter(typeof(SingleValueObjectConverter))]
-public class AccountId : Identity<AccountId>
+public class LedgerEntryId : Identity<LedgerEntryId>
 {
-    public AccountId(string value) : base(value)
+    public LedgerEntryId(string value) : base(value)
     {
     }
 }
