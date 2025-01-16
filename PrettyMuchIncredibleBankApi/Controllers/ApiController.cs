@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using PMI.Commands;
 using PMI.Domain.AccountModel;
+using PMI.Domain.TransactionModel;
 using PMI.Queries;
+using PMI.RequestModels;
 
 namespace PMI.Controllers;
 
@@ -19,7 +21,7 @@ public class ApiController : ControllerBase
         _queryService = queryService;
     }
 
-    [HttpGet]
+    [HttpPost]
     [Route("accounts")]
     public async Task<ActionResult<AccountStatement>> CreateAccount(CancellationToken cancellationToken)
     {
@@ -28,52 +30,74 @@ public class ApiController : ControllerBase
     }
 
     [HttpGet]
-    [Route("accounts/{id}")]
-    public async Task<ActionResult<AccountStatement>> Account([FromRoute] string id,
+    [Route("accounts/{id}/balance")]
+    public async Task<ActionResult<decimal>> AccountBalance([FromRoute] string id,
         CancellationToken cancellationToken)
     {
-        return Ok(await GetAccount(id, cancellationToken));
+        var account = await GetAccount(id, cancellationToken);
+        return Ok(account.Balance);
     }
 
     [HttpGet]
-    [Route("accounts/{id}/deposit/{amount}")]
-    public async Task<ActionResult<AccountStatement>> Deposit([FromRoute] string id, [FromRoute] decimal amount,
+    [Route("accounts/{id}/history")]
+    public async Task<ActionResult<List<Transaction>>> AccountHistory([FromRoute] string id,
         CancellationToken cancellationToken)
     {
-        var result = await _commandService.Deposit(id, amount, cancellationToken);
+        var account = await GetAccount(id, cancellationToken);
+        return Ok(account.Transactions);
+    }
+
+    [HttpPost]
+    [Route("accounts/deposit")]
+    public async Task<ActionResult<AccountStatement>> Deposit([FromBody] DepositRequestModel requestModel,
+        CancellationToken cancellationToken)
+    {
+        var result = await _commandService.Deposit(requestModel.AccountId, requestModel.Amount, cancellationToken);
         if (!result.IsSuccess)
         {
             return UnprocessableEntity((result as FailedExecutionResult)?.Errors);
         }
-        return Ok(await GetAccount(id, cancellationToken));
+
+        return Ok(await GetAccount(requestModel.AccountId, cancellationToken));
     }
 
-    [HttpGet]
-    [Route("accounts/{id}/withdraw/{amount}")]
-    public async Task<ActionResult<AccountStatement>> Withdraw([FromRoute] string id, [FromRoute] decimal amount,
+    [HttpPost]
+    [Route("accounts/withdraw")]
+    public async Task<ActionResult<AccountStatement>> Withdraw([FromBody] WithdrawalRequestModel requestModel,
         CancellationToken cancellationToken)
     {
-        var result = await _commandService.Withdraw(id, amount, cancellationToken);
+        var result = await _commandService.Withdraw(requestModel.AccountId, requestModel.Amount, cancellationToken);
         if (!result.IsSuccess)
         {
             return UnprocessableEntity((result as FailedExecutionResult)?.Errors);
         }
-        return Ok(await GetAccount(id, cancellationToken));
+
+        return Ok(await GetAccount(requestModel.AccountId, cancellationToken));
     }
 
-    [HttpGet]
-    [Route("accounts/{from}/transfer/{to}/{amount}")]
-    public async Task<ActionResult<List<AccountStatement>>> Transfer([FromRoute] string from, [FromRoute] string to,
-        [FromRoute] decimal amount, CancellationToken cancellationToken)
+    [HttpPost]
+    [Route("accounts/transfer")]
+    public async Task<ActionResult<List<AccountStatement>>> Transfer([FromBody] TransferRequestModel requestModel,
+        CancellationToken cancellationToken)
     {
-        var result = await _commandService.Transfer(from, to, amount, cancellationToken);
+        var fromAccount = await GetAccount(requestModel.SourceAccountId, cancellationToken);
+        var toAccount = await GetAccount(requestModel.TargetAccountId, cancellationToken);
+        var result = await _commandService.Transfer(requestModel.SourceAccountId, requestModel.TargetAccountId,
+            requestModel.Amount, cancellationToken);
         if (!result.IsSuccess)
         {
             return UnprocessableEntity((result as FailedExecutionResult)?.Errors);
         }
-        var fromAccount = await GetAccount(from, cancellationToken);
-        var toAccount = await GetAccount(to, cancellationToken);
+
         return Ok(new List<AccountStatement> { fromAccount, toAccount });
+    }
+
+    [HttpGet]
+    [Route("accounts/list")]
+    public async Task<ActionResult<List<AccountStatement>>> ListAccounts(CancellationToken cancellationToken)
+    {
+        var accounts = await _queryService.GetAccounts(cancellationToken);
+        return Ok(accounts.Select(a => a.ToAccountStatement()));
     }
 
     private async Task<AccountStatement> GetAccount(string id, CancellationToken cancellationToken)

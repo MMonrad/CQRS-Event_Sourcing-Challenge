@@ -1,7 +1,10 @@
 ﻿using EventFlow.Extensions;
+using PMI;
 using PMI.Commands;
 using PMI.Domain.ReadModels;
+using PMI.Domain.Subscribers;
 using PMI.Queries;
+using PMI.Services;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +17,9 @@ builder.Services.AddEventFlow(ef => ef
 );
 builder.Services.AddTransient<CommandService>();
 builder.Services.AddTransient<QueryService>();
+builder.Services.AddTransient<WebhookService>();
+builder.Services.Configure<WebhookOptions>(builder.Configuration.GetSection(nameof(WebhookOptions)));
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 app.MapControllers();
@@ -24,6 +30,5 @@ app.MapScalarApiReference(cfg =>
         .WithTitle("Pretty Much Incredible Bank Api")
         .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
 });
-
 app.UseHttpsRedirection();
 await app.RunAsync();

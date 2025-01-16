@@ -1,7 +1,6 @@
 ﻿using EventFlow.Aggregates;
 using EventFlow.Aggregates.ExecutionResults;
 using EventFlow.Extensions;
-using EventFlow.Provided.Specifications;
 using PMI.Domain.Events;
 using PMI.Domain.Specifications;
 using PMI.Domain.TransactionModel;
@@ -39,22 +38,26 @@ public class AccountAggregate : AggregateRoot<AccountAggregate, AccountId>
         {
             return ExecutionResult.Failed("Insufficient funds");
         }
-        var transaction = new Transaction(transactionId, Id,TransactionType.Credit,  timestamp
+
+        var transaction = new Transaction(transactionId, Id, TransactionType.Credit, timestamp
             , amount);
         new TransactionSpecification().ThrowDomainErrorIfNotSatisfied(transaction);
-        Emit(new MoneyWithdrawnEvent(transaction), transferId is not null ? new Metadata(new KeyValuePair<string, string>("transfer-id", transferId)) : null);
+        Emit(new MoneyWithdrawnEvent(transaction),
+            transferId is not null ? new Metadata(new KeyValuePair<string, string>("transfer-id", transferId)) : null);
         return ExecutionResult.Success();
     }
 
-    public IExecutionResult InitiateTransfer(decimal amount, AccountId destinationAccountId, TransactionId transactionId, DateTimeOffset timestamp)
+    public IExecutionResult InitiateTransfer(decimal amount, AccountId destinationAccountId,
+        TransactionId transactionId, DateTimeOffset timestamp)
     {
         if (_balance - amount < 0)
         {
             return ExecutionResult.Failed("Insufficient funds");
         }
+
         Emit(new TransferInitiatedEvent(transactionId, Id, destinationAccountId, amount, timestamp),
             new Metadata(new KeyValuePair<string, string>("transfer-id", Guid.NewGuid().ToString()))
-            );
+        );
         return ExecutionResult.Success();
     }
 
@@ -62,20 +65,30 @@ public class AccountAggregate : AggregateRoot<AccountAggregate, AccountId>
     {
         _transactions.Add(moneyDepositedEvent.Transaction);
         _balance += moneyDepositedEvent.Transaction.Amount;
+        Emit(new BalanceUpdatedEvent(moneyDepositedEvent.Transaction.Id, TransactionType.Deposit,
+            moneyDepositedEvent.Transaction.Amount, _balance, moneyDepositedEvent.Transaction.Timestamp));
     }
 
     public void Apply(MoneyWithdrawnEvent moneyWithdrawnEvent)
     {
         _transactions.Add(moneyWithdrawnEvent.Transaction);
         _balance -= moneyWithdrawnEvent.Transaction.Amount;
+        Emit(new BalanceUpdatedEvent(moneyWithdrawnEvent.Transaction.Id, TransactionType.Credit,
+            moneyWithdrawnEvent.Transaction.Amount, _balance, moneyWithdrawnEvent.Transaction.Timestamp));
     }
 
     public void Apply(TransferInitiatedEvent transferInitiatedEvent)
     {
-        // Handled by TransferSaga
+        // Handled by Saga
     }
+
     public void Apply(AccountCreatedEvent accountCreatedEvent)
     {
         _balance = 0;
+    }
+
+    public void Apply(BalanceUpdatedEvent balanceUpdatedEvent)
+    {
+        // For subscriber
     }
 }

@@ -17,4 +17,9 @@ public class QueryService
         var account = await _accountReadStore.GetAsync(accountId, cancellationToken).ConfigureAwait(false);
         return account.ReadModel;
     }
+    public async Task<List<AccountReadModel>> GetAccounts(CancellationToken cancellationToken)
+    {
+        var account = await _accountReadStore.FindAsync(x => true, cancellationToken).ConfigureAwait(false);
+        return account.ToList();
+    }
 }
