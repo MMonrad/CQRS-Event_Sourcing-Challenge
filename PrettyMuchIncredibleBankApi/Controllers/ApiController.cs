@@ -28,7 +28,14 @@ public class ApiController : ControllerBase
         var createdAccount = await _commandService.CreateAccount(cancellationToken);
         return Ok(createdAccount);
     }
-
+    [HttpGet]
+    [Route("accounts/{id}")]
+    public async Task<ActionResult<AccountStatement>> FetchAccount([FromRoute] string id,
+        CancellationToken cancellationToken)
+    {
+        var account = await GetAccount(id, cancellationToken);
+        return Ok(account);
+    }
     [HttpGet]
     [Route("accounts/{id}/balance")]
     public async Task<ActionResult<decimal>> AccountBalance([FromRoute] string id,

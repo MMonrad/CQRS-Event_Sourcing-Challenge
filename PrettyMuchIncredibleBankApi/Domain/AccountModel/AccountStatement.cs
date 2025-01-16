@@ -2,5 +2,8 @@
 
 namespace PMI.Domain.AccountModel;
 
-public record AccountStatement(string AccountId, decimal Balance, List<Transaction> Transactions, int Version)
+public record AccountStatement(string AccountId, decimal Balance, List<TransactionStatement> Transactions, int Version)
 { }
+
+public record TransactionStatement(string TransactionId, TransactionType TransactionType, DateTimeOffset Timestamp,
+    decimal Amount){}

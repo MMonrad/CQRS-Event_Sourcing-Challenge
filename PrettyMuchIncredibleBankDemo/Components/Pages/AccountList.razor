@@ -1,0 +1,114 @@
+﻿@page "/"
+@using PrettyMuchIncredibleBankDemo.Models
+@using PrettyMuchIncredibleBankDemo.Services
+@using BlazorBootstrap
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+@inject ApiService ApiService
+
+<PageTitle>Account List</PageTitle>
+
+<h1>List of Accounts</h1>
+
+<p>
+    <button class="btn btn-warning" @onclick="Load">Refresh</button>
+</p>
+
+@if (accounts == null)
+{
+    <p><em>No data...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+        <tr>
+            <th></th>
+            <th>ID</th>
+            <th>Balance</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var account in accounts)
+        {
+            <tr>
+                <td>
+                    <button class="btn btn-outline-primary btn-xs" @onclick="()=> Toggle(account.AccountId)"><span class="bi bi-three-dots-vertical"></span>
+                    </button>
+                </td>
+                <td>@account.AccountId</td>
+                <td>@account.Balance.ToString("C2")</td>
+            </tr>
+            <tr>
+                <td colspan="3" style="padding: 0;">
+                    <Collapse Class="@GetCollapseState(account.AccountId)">
+                        <Card><CardBody>
+                        @if (!account.Transactions.Any())
+                        {
+                            <p><em>No transactions...</em></p>
+                        }
+                        else
+                        {
+                            <table class="table table-striped">
+                                <thead>
+                                <tr class="info">
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var transaction in account.Transactions)
+                                {
+                                    <td>@transaction.Timestamp.ToString("u")</td>
+                                    <td>@Enum.GetName(typeof(TransactionType), transaction.TransactionType)</td>
+                                    <td>@transaction.Amount.ToString("C2")</td>
+                                }
+                                </tbody>
+                            </table>
+                        }
+                            </CardBody></Card>
+                    </Collapse>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<AccountStatement>? accounts;
+    private Dictionary<string, bool> collapseStates = new();
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    async Task Load()
+    {
+        var result = await ApiService.GetAccountsAsync();
+        if (result.Any())
+        {
+            accounts = result;
+            foreach (var account in accounts)
+            {
+                collapseStates[account.AccountId] = true;
+            }
+        }
+    }
+    
+    void Toggle(string id)
+    {
+        collapseStates[id] = !collapseStates[id];
+    }
+
+    string GetCollapseState(string id)
+    {
+        if (collapseStates.TryGetValue(id, out var state) && !state)
+        {
+            return "show";
+        }
+        return string.Empty;
+    }
+
+}
