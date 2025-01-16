@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using EventFlow.Aggregates.ExecutionResults;
+using Microsoft.AspNetCore.Mvc;
 using PMI.Commands;
 using PMI.Domain.AccountModel;
-using PMI.Domain.LedgerModel;
 using PMI.Queries;
 
 namespace PMI.Controllers;
@@ -20,20 +20,10 @@ public class ApiController : ControllerBase
     }
 
     [HttpGet]
-    [Route("ledger")]
-    public async Task<ActionResult<LedgerStatement>> GetLedger(CancellationToken cancellationToken)
-    {
-        var ledger = await _queryService.GetLedger(cancellationToken);
-        return ledger.ToLedgerStatement();
-        return Ok(ledger);
-    }
-
-    [HttpGet]
     [Route("accounts")]
     public async Task<ActionResult<AccountStatement>> CreateAccount(CancellationToken cancellationToken)
     {
         var createdAccount = await _commandService.CreateAccount(cancellationToken);
-
         return Ok(createdAccount);
     }
 
@@ -50,7 +40,11 @@ public class ApiController : ControllerBase
     public async Task<ActionResult<AccountStatement>> Deposit([FromRoute] string id, [FromRoute] decimal amount,
         CancellationToken cancellationToken)
     {
-        await _commandService.Deposit(id, amount, cancellationToken);
+        var result = await _commandService.Deposit(id, amount, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return UnprocessableEntity((result as FailedExecutionResult)?.Errors);
+        }
         return Ok(await GetAccount(id, cancellationToken));
     }
 
@@ -59,7 +53,11 @@ public class ApiController : ControllerBase
     public async Task<ActionResult<AccountStatement>> Withdraw([FromRoute] string id, [FromRoute] decimal amount,
         CancellationToken cancellationToken)
     {
-        await _commandService.Withdraw(id, amount, cancellationToken);
+        var result = await _commandService.Withdraw(id, amount, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return UnprocessableEntity((result as FailedExecutionResult)?.Errors);
+        }
         return Ok(await GetAccount(id, cancellationToken));
     }
 
@@ -68,7 +66,11 @@ public class ApiController : ControllerBase
     public async Task<ActionResult<List<AccountStatement>>> Transfer([FromRoute] string from, [FromRoute] string to,
         [FromRoute] decimal amount, CancellationToken cancellationToken)
     {
-        await _commandService.Transfer(from, to, amount, cancellationToken);
+        var result = await _commandService.Transfer(from, to, amount, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return UnprocessableEntity((result as FailedExecutionResult)?.Errors);
+        }
         var fromAccount = await GetAccount(from, cancellationToken);
         var toAccount = await GetAccount(to, cancellationToken);
         return Ok(new List<AccountStatement> { fromAccount, toAccount });

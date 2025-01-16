@@ -32,14 +32,29 @@ public class AccountAggregate : AggregateRoot<AccountAggregate, AccountId>
         return ExecutionResult.Success();
     }
 
-    public IExecutionResult Withdraw(decimal amount, TransactionId transactionId, DateTimeOffset timestamp)
+    public IExecutionResult Withdraw(decimal amount, TransactionId transactionId, DateTimeOffset timestamp,
+        string? transferId = null)
     {
+        if (_balance - amount < 0)
+        {
+            return ExecutionResult.Failed("Insufficient funds");
+        }
         var transaction = new Transaction(transactionId, Id,TransactionType.Credit,  timestamp
             , amount);
-        new TransactionSpecification()
-            .And(new ExpressionSpecification<Transaction>(x => _balance - x.Amount >= 0))
-            .ThrowDomainErrorIfNotSatisfied(transaction);
-        Emit(new MoneyWithdrawnEvent(transaction));
+        new TransactionSpecification().ThrowDomainErrorIfNotSatisfied(transaction);
+        Emit(new MoneyWithdrawnEvent(transaction), transferId is not null ? new Metadata(new KeyValuePair<string, string>("transfer-id", transferId)) : null);
+        return ExecutionResult.Success();
+    }
+
+    public IExecutionResult InitiateTransfer(decimal amount, AccountId destinationAccountId, TransactionId transactionId, DateTimeOffset timestamp)
+    {
+        if (_balance - amount < 0)
+        {
+            return ExecutionResult.Failed("Insufficient funds");
+        }
+        Emit(new TransferInitiatedEvent(transactionId, Id, destinationAccountId, amount, timestamp),
+            new Metadata(new KeyValuePair<string, string>("transfer-id", Guid.NewGuid().ToString()))
+            );
         return ExecutionResult.Success();
     }
 
@@ -55,6 +70,10 @@ public class AccountAggregate : AggregateRoot<AccountAggregate, AccountId>
         _balance -= moneyWithdrawnEvent.Transaction.Amount;
     }
 
+    public void Apply(TransferInitiatedEvent transferInitiatedEvent)
+    {
+        // Handled by TransferSaga
+    }
     public void Apply(AccountCreatedEvent accountCreatedEvent)
     {
         _balance = 0;
