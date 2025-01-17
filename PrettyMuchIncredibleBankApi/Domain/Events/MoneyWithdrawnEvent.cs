@@ -4,7 +4,7 @@ using PMI.Domain.TransactionModel;
 
 namespace PMI.Domain.Events;
 
-public class MoneyWithdrawnEvent : AggregateEvent<AccountAggregate, AccountId>
+public class MoneyWithdrawnEvent : AggregateEvent<AccountAggregate, AccountId>, ILoggableEvent
 {
     public MoneyWithdrawnEvent(Transaction transaction)
     {
@@ -12,4 +12,10 @@ public class MoneyWithdrawnEvent : AggregateEvent<AccountAggregate, AccountId>
     }
 
     public Transaction Transaction { get; }
+
+    public string LogMessage()
+    {
+        return
+            $"Withdrawn {Transaction.Amount:C2} with transaction {Transaction.Id} as {Enum.GetName(typeof(TransactionType), Transaction.TransactionType)} ";
+    }
 }

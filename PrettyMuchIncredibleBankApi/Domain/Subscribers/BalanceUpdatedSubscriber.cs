@@ -12,7 +12,7 @@ public class BalanceUpdatedSubscriber : ISubscribeSynchronousTo<AccountAggregate
 {
     private readonly IJobScheduler _jobScheduler;
 
-    public BalanceUpdatedSubscriber(WebhookService webhookService, IJobScheduler jobScheduler)
+    public BalanceUpdatedSubscriber(IJobScheduler jobScheduler)
     {
         _jobScheduler = jobScheduler;
     }
