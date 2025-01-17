@@ -8,6 +8,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{2AE656
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrettyMuchIncredibleBankApi", "PrettyMuchIncredibleBankApi\PrettyMuchIncredibleBankApi.csproj", "{990A7347-A71A-4BA8-BB22-A9A732418B36}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrettyMuchIncredibleBankDemo", "PrettyMuchIncredibleBankDemo\PrettyMuchIncredibleBankDemo.csproj", "{EC4C2A6A-08D3-47ED-B81C-44084CCB2C63}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{990A7347-A71A-4BA8-BB22-A9A732418B36}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{990A7347-A71A-4BA8-BB22-A9A732418B36}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{990A7347-A71A-4BA8-BB22-A9A732418B36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC4C2A6A-08D3-47ED-B81C-44084CCB2C63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC4C2A6A-08D3-47ED-B81C-44084CCB2C63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC4C2A6A-08D3-47ED-B81C-44084CCB2C63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC4C2A6A-08D3-47ED-B81C-44084CCB2C63}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -1,0 +1,64 @@
+﻿@page "/operations"
+@using PrettyMuchIncredibleBankDemo.Models
+@using PrettyMuchIncredibleBankDemo.Services
+@using BlazorBootstrap
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+@inject ApiService ApiService
+
+<PageTitle>Account Operations</PageTitle>
+
+<h2>Selected Account ID: @_account?.AccountId</h2>
+
+<Ribbon OnClick="HandleRibbonItemClick">
+    <RibbonTab Title="Account" Active="true">
+        <Content>
+            <RibbonItem Name="NewAccount" IconName="IconName.Bank" IconSize="IconSize.x2" IsFirstItem="true">Create<br/>Account</RibbonItem>
+            <RibbonItem Name="SetAccount" IconName="IconName.Type" IconSize="IconSize.x2" IsLastItem="true">Set<br/>Account</RibbonItem>
+            <RibbonItem Name="Refresh" IconName="IconName.ArrowRepeat" IconSize="IconSize.x2" IsLastItem="true">Refresh</RibbonItem>
+        </Content>
+    </RibbonTab>
+    <RibbonTab Title="Operations">
+        <Content>
+            <RibbonItem Name="Deposit" IconName="IconName.ArrowBarDown" IconSize="IconSize.x2" IsFirstItem="true">Deposit</RibbonItem>
+            <RibbonItem Name="Withdraw" IconName="IconName.ArrowBarUp" IconSize="IconSize.x2" IsFirstItem="true">Withdraw</RibbonItem>
+            <RibbonItem Name="Transfer" IconName="IconName.ArrowLeftRight" IconSize="IconSize.x2" IsLastItem="true">Transfer</RibbonItem>
+        </Content>
+    </RibbonTab>
+</Ribbon>
+
+@code {
+    private AccountStatement? _account;
+
+    async Task CreateAccount()
+    {
+       var id = await ApiService.CreateAccountAsync();
+       _account = await ApiService.GetAccountAsync(id);
+    }
+
+    async Task Refresh()
+    {
+        if (_account is not null)
+        {
+            _account = await ApiService.GetAccountAsync(_account.AccountId);
+        }
+    }
+
+    async Task HandleRibbonItemClick(RibbonItemEventArgs arg)
+    {
+        switch (arg.Name)
+        {
+            case "NewAccount":
+                await CreateAccount();
+                break;
+            case "Refresh":
+                await Refresh();
+                break;
+            default:
+                break;
+        }
+    }
+    
+    
+
+}

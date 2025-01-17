@@ -49,6 +49,8 @@ public class AccountReadModel : IReadModel,
 
     public AccountStatement ToAccountStatement()
     {
-        return new AccountStatement(AccountId.Value, Balance, Transactions, Version);
+        return new AccountStatement(AccountId.Value, Balance,
+            Transactions.Select(t => new TransactionStatement(t.Id.Value, t.TransactionType, t.Timestamp, t.Amount))
+                .ToList(), Version);
     }
 }

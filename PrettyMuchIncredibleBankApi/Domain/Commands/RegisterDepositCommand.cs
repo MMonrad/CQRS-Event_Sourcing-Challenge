@@ -1,37 +1,34 @@
 ﻿using EventFlow.Aggregates.ExecutionResults;
 using EventFlow.Commands;
 using PMI.Domain.AccountModel;
-using PMI.Domain.LedgerEntryModel;
-using PMI.Domain.LedgerModel;
+using PMI.Domain.TransactionModel;
 
 namespace PMI.Domain.Commands;
 
-public class RegisterDepositCommand : Command<LedgerAggregate, LedgerId, IExecutionResult>
+public class RegisterDepositCommand : Command<AccountAggregate, AccountId, IExecutionResult>
 {
-    public RegisterDepositCommand(LedgerId id, LedgerEntryId ledgerEntryId, AccountId accountId,
+    public RegisterDepositCommand(AccountId id, TransactionId transactionId,
         DateTimeOffset timestamp, decimal amount) :
         base(id)
     {
         Amount = amount;
         Timestamp = timestamp;
-        LedgerEntryId = ledgerEntryId;
-        AccountId = accountId;
+        TransactionId = transactionId;
     }
 
     public decimal Amount { get; }
     public DateTimeOffset Timestamp { get; }
-    public LedgerEntryId LedgerEntryId { get; }
-    public AccountId AccountId { get; }
+    public TransactionId TransactionId { get; }
 }
 
 public class
-    RegisterDepositCommandHandler : CommandHandler<LedgerAggregate, LedgerId, IExecutionResult, RegisterDepositCommand>
+    RegisterDepositCommandHandler : CommandHandler<AccountAggregate, AccountId, IExecutionResult,
+    RegisterDepositCommand>
 {
-    public override Task<IExecutionResult> ExecuteCommandAsync(LedgerAggregate aggregate,
+    public override Task<IExecutionResult> ExecuteCommandAsync(AccountAggregate aggregate,
         RegisterDepositCommand command,
         CancellationToken cancellationToken)
     {
-        return Task.FromResult(aggregate.Deposit(command.LedgerEntryId, command.AccountId, command.Timestamp,
-            command.Amount));
+        return Task.FromResult(aggregate.Deposit(command.Amount, command.TransactionId, command.Timestamp));
     }
 }

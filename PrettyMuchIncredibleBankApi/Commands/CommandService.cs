@@ -1,74 +1,67 @@
 ﻿using EventFlow;
+using EventFlow.Aggregates.ExecutionResults;
 using EventFlow.Queries;
 using PMI.Domain.AccountModel;
 using PMI.Domain.Commands;
-using PMI.Domain.LedgerEntryModel;
 using PMI.Domain.ReadModels;
-using PMI.Services;
+using PMI.Domain.TransactionModel;
 
 namespace PMI.Commands;
 
 public class CommandService
 {
     private readonly ICommandBus _commandBus;
-    private readonly LedgerSingletonService _ledgerSingletonService;
     private readonly IQueryProcessor _queryProcessor;
 
-    public CommandService(IQueryProcessor queryProcessor, ICommandBus commandBus,
-        LedgerSingletonService ledgerSingletonService)
+    public CommandService(IQueryProcessor queryProcessor, ICommandBus commandBus)
     {
         _queryProcessor = queryProcessor ?? throw new ArgumentNullException(nameof(queryProcessor));
         _commandBus = commandBus ?? throw new ArgumentNullException(nameof(commandBus));
-        _ledgerSingletonService =
-            ledgerSingletonService ?? throw new ArgumentNullException(nameof(ledgerSingletonService));
     }
 
     public async Task<string> CreateAccount(CancellationToken cancellationToken)
     {
         var newAccountId = AccountId.New;
-        await _commandBus.PublishAsync(new CreateAccountCommand(newAccountId), cancellationToken).ConfigureAwait(false);
-        return newAccountId.Value;
+        var result = await _commandBus.PublishAsync(new CreateAccountCommand(newAccountId), cancellationToken)
+            .ConfigureAwait(false);
+        return result is SuccessExecutionResult && result.IsSuccess
+            ? newAccountId.Value
+            : string.Join(Environment.NewLine, (result as FailedExecutionResult)!.Errors);
     }
 
-    public async Task<string> Deposit(string id, decimal amount, CancellationToken cancellationToken)
+    public async Task<IExecutionResult> Deposit(string id, decimal amount, CancellationToken cancellationToken)
     {
         var account =
             await _queryProcessor.ProcessAsync(new ReadModelByIdQuery<AccountReadModel>(id), cancellationToken);
-        var newEntryId = LedgerEntryId.New;
-        await _commandBus
-            .PublishAsync(new RegisterDepositCommand(
-                    await _ledgerSingletonService.GetLedgerId(), newEntryId,
-                    account.AccountId, DateTimeOffset.Now, amount),
+        var newTransactionId = TransactionId.New;
+        return await _commandBus
+            .PublishAsync(new RegisterDepositCommand(account.AccountId, newTransactionId, DateTimeOffset.Now, amount),
                 cancellationToken).ConfigureAwait(false);
-        return newEntryId.Value;
     }
 
-    public async Task<string> Withdraw(string id, decimal amount, CancellationToken cancellationToken)
+    public async Task<IExecutionResult> Withdraw(string id, decimal amount, CancellationToken cancellationToken)
     {
         var account =
             await _queryProcessor.ProcessAsync(new ReadModelByIdQuery<AccountReadModel>(id), cancellationToken);
-        var newEntryId = LedgerEntryId.New;
-        await _commandBus
-            .PublishAsync(new RegisterWithdrawalCommand(
-                    await _ledgerSingletonService.GetLedgerId(), newEntryId,
-                    account.AccountId, DateTimeOffset.Now, amount),
+        var newTransactionId = TransactionId.New;
+        return await _commandBus
+            .PublishAsync(
+                new RegisterWithdrawalCommand(account.AccountId, newTransactionId, DateTimeOffset.Now, amount),
                 cancellationToken).ConfigureAwait(false);
-        return newEntryId.Value;
-        ;
     }
 
-    public async Task<string> Transfer(string from, string to, decimal amount, CancellationToken cancellationToken)
+    public async Task<IExecutionResult> Transfer(string from, string to, decimal amount,
+        CancellationToken cancellationToken)
     {
         var sourceAccount =
             await _queryProcessor.ProcessAsync(new ReadModelByIdQuery<AccountReadModel>(from), cancellationToken);
         var targetAccount =
             await _queryProcessor.ProcessAsync(new ReadModelByIdQuery<AccountReadModel>(to), cancellationToken);
-        var newEntryId = LedgerEntryId.New;
-        await _commandBus
-            .PublishAsync(new RegisterTransferCommand(
-                    await _ledgerSingletonService.GetLedgerId(), newEntryId,
-                    sourceAccount.AccountId, targetAccount.AccountId, DateTimeOffset.Now, amount),
+        var newTransactionId = TransactionId.New;
+        return await _commandBus
+            .PublishAsync(
+                new InitiateTransferCommand(newTransactionId, sourceAccount.AccountId, targetAccount.AccountId,
+                    DateTimeOffset.Now, amount),
                 cancellationToken).ConfigureAwait(false);
-        return newEntryId.Value;
     }
 }
