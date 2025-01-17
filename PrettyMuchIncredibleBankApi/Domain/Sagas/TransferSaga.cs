@@ -37,7 +37,7 @@ public class TransferSaga : AggregateSaga<TransferSaga, TransferSagaId, Transfer
         Emit(new TransferSagaStartedEvent(transferEvent.SourceAccountId, transferEvent.TargetAccountId,
             transferEvent.TransactionId, transferEvent.Amount));
         Publish(new WithdrawMoneyCommand(transferEvent.SourceAccountId, transferEvent.TransactionId,
-            transferEvent.Timestamp, transferEvent.Amount, Id.Value));
+            transferEvent.Timestamp, transferEvent.Amount, domainEvent.Metadata.GetMetadataValue("transfer_id")));
         return Task.CompletedTask;
     }
 

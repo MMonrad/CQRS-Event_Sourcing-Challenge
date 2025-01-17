@@ -10,6 +10,8 @@ builder.Services.AddRazorComponents()
 builder.Services.AddScoped<ApiService>();
 builder.Services.AddOptions<PmiOptions>().Bind(builder.Configuration.GetSection(nameof(PmiOptions)));
 builder.Services.AddHttpClient();
+builder.Services.AddRazorPages().AddRazorRuntimeCompilation();
+builder.Services.AddBlazorBootstrap();
 
 var app = builder.Build();
 

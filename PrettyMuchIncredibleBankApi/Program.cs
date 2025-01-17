@@ -20,7 +20,15 @@ builder.Services.AddTransient<QueryService>();
 builder.Services.AddTransient<WebhookService>();
 builder.Services.Configure<WebhookOptions>(builder.Configuration.GetSection(nameof(WebhookOptions)));
 builder.Services.AddHttpClient();
-
+builder.Services.AddSignalR();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        cors => cors.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+    );
+});
 var app = builder.Build();
 app.MapControllers();
 app.MapOpenApi();
@@ -30,5 +38,7 @@ app.MapScalarApiReference(cfg =>
         .WithTitle("Pretty Much Incredible Bank Api")
         .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
 });
+app.UseCors("AllowAll");
 app.UseHttpsRedirection();
+app.MapHub<LogHub>("logs");
 await app.RunAsync();

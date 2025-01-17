@@ -22,4 +22,10 @@ public class QueryService
         var account = await _accountReadStore.FindAsync(x => true, cancellationToken).ConfigureAwait(false);
         return account.ToList();
     }
+    public async Task<List<AccountReadModel>> SearchAccounts(string? query, CancellationToken cancellationToken)
+    {
+        var account = await _accountReadStore.FindAsync(x => 
+            query is null || x.AccountId.Value.ToLowerInvariant().Contains(query.ToLowerInvariant()) , cancellationToken).ConfigureAwait(false);
+        return account.ToList();
+    }
 }

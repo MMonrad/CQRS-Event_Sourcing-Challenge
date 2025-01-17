@@ -87,14 +87,14 @@ public class ApiController : ControllerBase
     public async Task<ActionResult<List<AccountStatement>>> Transfer([FromBody] TransferRequestModel requestModel,
         CancellationToken cancellationToken)
     {
-        var fromAccount = await GetAccount(requestModel.SourceAccountId, cancellationToken);
-        var toAccount = await GetAccount(requestModel.TargetAccountId, cancellationToken);
         var result = await _commandService.Transfer(requestModel.SourceAccountId, requestModel.TargetAccountId,
             requestModel.Amount, cancellationToken);
         if (!result.IsSuccess)
         {
             return UnprocessableEntity((result as FailedExecutionResult)?.Errors);
         }
+        var fromAccount = await GetAccount(requestModel.SourceAccountId, cancellationToken);
+        var toAccount = await GetAccount(requestModel.TargetAccountId, cancellationToken);
 
         return Ok(new List<AccountStatement> { fromAccount, toAccount });
     }
@@ -106,10 +106,17 @@ public class ApiController : ControllerBase
         var accounts = await _queryService.GetAccounts(cancellationToken);
         return Ok(accounts.Select(a => a.ToAccountStatement()));
     }
+    [HttpGet]
+    [Route("accounts/search")]
+    public async Task<ActionResult<List<AccountStatement>>> SearchAccounts([FromQuery] string? query, CancellationToken cancellationToken)
+    {
+        var accounts = await _queryService.SearchAccounts(query, cancellationToken);
+        return Ok(accounts.Select(a => a.ToAccountStatement()));
+    }
 
-    private async Task<AccountStatement> GetAccount(string id, CancellationToken cancellationToken)
+    private async Task<AccountStatement?> GetAccount(string id, CancellationToken cancellationToken)
     {
         var account = await _queryService.GetAccount(id, cancellationToken);
-        return account.ToAccountStatement();
+        return account?.ToAccountStatement();
     }
 }

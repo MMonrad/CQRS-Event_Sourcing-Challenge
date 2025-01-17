@@ -43,7 +43,7 @@ public class AccountAggregate : AggregateRoot<AccountAggregate, AccountId>
             , amount);
         new TransactionSpecification().ThrowDomainErrorIfNotSatisfied(transaction);
         Emit(new MoneyWithdrawnEvent(transaction),
-            transferId is not null ? new Metadata(new KeyValuePair<string, string>("transfer-id", transferId)) : null);
+            transferId is not null ? new Metadata(new KeyValuePair<string, string>("transfer_id", transferId)) : null);
         return ExecutionResult.Success();
     }
 
@@ -56,7 +56,7 @@ public class AccountAggregate : AggregateRoot<AccountAggregate, AccountId>
         }
 
         Emit(new TransferInitiatedEvent(transactionId, Id, destinationAccountId, amount, timestamp),
-            new Metadata(new KeyValuePair<string, string>("transfer-id", Guid.NewGuid().ToString()))
+            new Metadata(new KeyValuePair<string, string>("transfer_id", Guid.NewGuid().ToString()))
         );
         return ExecutionResult.Success();
     }
@@ -65,16 +65,12 @@ public class AccountAggregate : AggregateRoot<AccountAggregate, AccountId>
     {
         _transactions.Add(moneyDepositedEvent.Transaction);
         _balance += moneyDepositedEvent.Transaction.Amount;
-        Emit(new BalanceUpdatedEvent(moneyDepositedEvent.Transaction.Id, TransactionType.Deposit,
-            moneyDepositedEvent.Transaction.Amount, _balance, moneyDepositedEvent.Transaction.Timestamp));
     }
 
     public void Apply(MoneyWithdrawnEvent moneyWithdrawnEvent)
     {
         _transactions.Add(moneyWithdrawnEvent.Transaction);
         _balance -= moneyWithdrawnEvent.Transaction.Amount;
-        Emit(new BalanceUpdatedEvent(moneyWithdrawnEvent.Transaction.Id, TransactionType.Credit,
-            moneyWithdrawnEvent.Transaction.Amount, _balance, moneyWithdrawnEvent.Transaction.Timestamp));
     }
 
     public void Apply(TransferInitiatedEvent transferInitiatedEvent)
@@ -85,10 +81,5 @@ public class AccountAggregate : AggregateRoot<AccountAggregate, AccountId>
     public void Apply(AccountCreatedEvent accountCreatedEvent)
     {
         _balance = 0;
-    }
-
-    public void Apply(BalanceUpdatedEvent balanceUpdatedEvent)
-    {
-        // For subscriber
     }
 }

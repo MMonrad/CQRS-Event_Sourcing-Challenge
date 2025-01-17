@@ -1,28 +1,37 @@
 ﻿using EventFlow.Aggregates;
+using EventFlow.Jobs;
 using EventFlow.Subscribers;
 using PMI.Domain.AccountModel;
 using PMI.Domain.Events;
-using PMI.Domain.TransactionModel;
 using PMI.Services;
 
 namespace PMI.Domain.Subscribers;
 
-public class BalanceUpdatedSubscriber : ISubscribeSynchronousTo<AccountAggregate, AccountId, BalanceUpdatedEvent>
+public class BalanceUpdatedSubscriber : ISubscribeSynchronousTo<AccountAggregate, AccountId, MoneyDepositedEvent>,
+    ISubscribeSynchronousTo<AccountAggregate, AccountId, MoneyWithdrawnEvent>
 {
-    private readonly WebhookService _webhookService;
+    private readonly IJobScheduler _jobScheduler;
 
-    public BalanceUpdatedSubscriber(WebhookService webhookService)
+    public BalanceUpdatedSubscriber(IJobScheduler jobScheduler)
     {
-        _webhookService = webhookService;
+        _jobScheduler = jobScheduler;
     }
 
-    public async Task HandleAsync(IDomainEvent<AccountAggregate, AccountId, BalanceUpdatedEvent> domainEvent, CancellationToken cancellationToken)
+    public async Task HandleAsync(IDomainEvent<AccountAggregate, AccountId, MoneyDepositedEvent> domainEvent,
+        CancellationToken cancellationToken)
     {
+        await IssueJob(domainEvent.AggregateIdentity.Value, cancellationToken);
+    }
 
-        var content =
-            $"Your account {domainEvent.AggregateIdentity.Value} balance changed to {domainEvent.AggregateEvent.CurrentBalance}" +
-            $" due to {Enum.GetName(typeof(TransactionType), domainEvent.AggregateEvent.TransactionType)} operation of {domainEvent.AggregateEvent.TransactionAmount}" +
-            $" at {domainEvent.AggregateEvent.Timestamp:g}";
-        await _webhookService.SendHook("Balance Update", content);
+    public async Task HandleAsync(IDomainEvent<AccountAggregate, AccountId, MoneyWithdrawnEvent> domainEvent,
+        CancellationToken cancellationToken)
+    {
+        await IssueJob(domainEvent.AggregateIdentity.Value, cancellationToken);
+    }
+
+    private async Task IssueJob(string accountId, CancellationToken cancellationToken)
+    {
+        var job = new SendWebhookJob(accountId, "Balance Update");
+        await _jobScheduler.ScheduleAsync(job, TimeSpan.FromSeconds(5), cancellationToken);
     }
 }

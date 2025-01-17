@@ -4,7 +4,7 @@ using PMI.Domain.TransactionModel;
 
 namespace PMI.Domain.Events;
 
-public class TransferInitiatedEvent : AggregateEvent<AccountAggregate, AccountId>
+public class TransferInitiatedEvent : AggregateEvent<AccountAggregate, AccountId>, ILoggableEvent
 {
     public TransactionId TransactionId { get; }
     public AccountId SourceAccountId { get; }
@@ -20,5 +20,11 @@ public class TransferInitiatedEvent : AggregateEvent<AccountAggregate, AccountId
         TargetAccountId = targetAccountId;
         Amount = amount;
         Timestamp = timestamp;
+    }
+    
+    
+    public string LogMessage()
+    {
+        return $"Transferred {Amount:C2} with transaction {TransactionId} between {SourceAccountId} and {TargetAccountId}";
     }
 }

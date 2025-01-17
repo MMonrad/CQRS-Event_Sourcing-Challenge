@@ -1,46 +1,192 @@
-﻿@page "/operations"
+﻿@page "/operations/{id?}"
 @using PrettyMuchIncredibleBankDemo.Models
 @using PrettyMuchIncredibleBankDemo.Services
 @using BlazorBootstrap
+@using Microsoft.AspNetCore.Mvc.RazorPages
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Options
 @rendermode InteractiveServer
 @attribute [StreamRendering]
 @inject ApiService ApiService
+@inject NavigationManager NavigationManager
+@inject IOptions<PmiOptions> Options
 
 <PageTitle>Account Operations</PageTitle>
+<section>
+    <Ribbon OnClick="HandleRibbonItemClick">
+        <RibbonTab Title="Account" Active="true">
+            <Content>
+                <RibbonItem Name="NewAccount" IconName="IconName.Bank" IconSize="IconSize.x2" IsFirstItem="true">Create<br/>Account</RibbonItem>
+                <RibbonItem Name="SetAccount" IconName="IconName.Type" IconSize="IconSize.x2" IsLastItem="true">Set<br/>Account</RibbonItem>
+                <RibbonItem Name="Refresh" IconName="IconName.ArrowRepeat" IconSize="IconSize.x2" IsLastItem="true">Refresh</RibbonItem>
+            </Content>
+        </RibbonTab>
+        <RibbonTab Title="Operations">
+            <Content>
+                <RibbonItem Name="Deposit" IconName="IconName.ArrowBarDown" IconSize="IconSize.x2" IsFirstItem="true">Deposit</RibbonItem>
+                <RibbonItem Name="Withdraw" IconName="IconName.ArrowBarUp" IconSize="IconSize.x2" IsFirstItem="true">Withdraw</RibbonItem>
+                <RibbonItem Name="Transfer" IconName="IconName.ArrowLeftRight" IconSize="IconSize.x2" IsLastItem="true">Transfer</RibbonItem>
+            </Content>
+        </RibbonTab>
+    </Ribbon>
+    <Progress @ref="Progress">
+        <ProgressBar @ref="ProgressBar"
+                     Type="ProgressType.StripedAndAnimated"
+        ></ProgressBar>
+        </Progress>
+</section>
+@if (_account is null)
+{
+    <section><h3 class="mt-4 mb-3"><i>No account selected</i></h3></section>
+}
+else
+{
+    <section>
+        <h2 class="mt-4 mb-3">Account Details</h2>
+        <div class="mt-2 p-2 border">
+        <b>ID: </b>@_account.AccountId
+        </div>
+        <div class="border border-top-0 mt-0 p-2"><b>Balance: </b>@_account.Balance.ToString("C2")</div>
+        <div class="border border-top-0 mt-0 p-2"><b>Version: </b>@_account.Version</div>
+        <Grid TItem="Transaction"
+              Class="table table-hover border-top"
+              Data="_account.Transactions"
+              EmptyText="No transactions"
+              FixedHeader="true"
+              AllowSorting="true">
+            <GridColumns>
+                <GridColumn TItem="Transaction" Context="transaction" HeaderText="Date" PropertyName="Timestamp" SortKeySelector="x => x.Timestamp">
+                    @transaction.Timestamp.ToString("u")
+                </GridColumn>
+                <GridColumn TItem="Transaction" Context="transaction" HeaderText="Type" PropertyName="TransactionType" SortKeySelector="x=>x.TransactionType">
+                    @Enum.GetName(typeof(TransactionType), transaction.TransactionType)
+                </GridColumn>
+                <GridColumn TItem="Transaction" Context="transaction" HeaderText="Amount" PropertyName="Amount">
+                    @transaction.Amount.ToString("C2")
+                </GridColumn>
+            </GridColumns>
+        </Grid>
+    </section>
+}
 
-<h2>Selected Account ID: @_account?.AccountId</h2>
-
-<Ribbon OnClick="HandleRibbonItemClick">
-    <RibbonTab Title="Account" Active="true">
+<Accordion>
+    <AccordionItem Active="true">
+        <TitleTemplate>
+            <Icon Name="IconName.ClockHistory" Class="me-1"/> Event Feed
+        </TitleTemplate>
         <Content>
-            <RibbonItem Name="NewAccount" IconName="IconName.Bank" IconSize="IconSize.x2" IsFirstItem="true">Create<br/>Account</RibbonItem>
-            <RibbonItem Name="SetAccount" IconName="IconName.Type" IconSize="IconSize.x2" IsLastItem="true">Set<br/>Account</RibbonItem>
-            <RibbonItem Name="Refresh" IconName="IconName.ArrowRepeat" IconSize="IconSize.x2" IsLastItem="true">Refresh</RibbonItem>
+            <ul class="list-group">
+            @foreach (var log in _logs)
+            {
+                <li class="list-group-item">@log.DateTime.ToString("u")::@log.EntityName :=> @log.Message</li>
+            }</ul>
         </Content>
-    </RibbonTab>
-    <RibbonTab Title="Operations">
-        <Content>
-            <RibbonItem Name="Deposit" IconName="IconName.ArrowBarDown" IconSize="IconSize.x2" IsFirstItem="true">Deposit</RibbonItem>
-            <RibbonItem Name="Withdraw" IconName="IconName.ArrowBarUp" IconSize="IconSize.x2" IsFirstItem="true">Withdraw</RibbonItem>
-            <RibbonItem Name="Transfer" IconName="IconName.ArrowLeftRight" IconSize="IconSize.x2" IsLastItem="true">Transfer</RibbonItem>
-        </Content>
-    </RibbonTab>
-</Ribbon>
+    </AccordionItem>
+</Accordion>
 
+<Modal @ref="_setAccountModal"
+       Title="Set Account Id"
+       CloseOnEscape="true">
+    <BodyTemplate>
+        <AutoComplete @bind-Value="ModalSelectedId" TItem="AccountStatement"
+                      DataProvider="AccountsDataProvider"
+                      PropertyName="AccountId"
+                      Placeholder="Search or paste Account Id">
+        </AutoComplete>
+    </BodyTemplate>
+    <FooterTemplate><Button Color="ButtonColor.Primary" @onclick="() => { if (ModalSelectedId is not null) { NavigateToAccount(ModalSelectedId); } }">Set</Button></FooterTemplate>
+</Modal>
+
+<Modal @ref="_depositModal"
+       CloseOnEscape="true"
+       Title="Deposit">
+    <BodyTemplate>
+        <CurrencyInput Locale="da-DK" TValue="decimal?" @bind-Value="DepositAmount" Placeholder="Enter Amount" EnableMinMax="true" Min="0.01M"></CurrencyInput>
+    </BodyTemplate>
+    <FooterTemplate><Button Color="ButtonColor.Primary" @onclick="ConfirmDepositModal">Confirm</Button></FooterTemplate>
+</Modal>
+
+<Modal @ref="_withdrawModal"
+       CloseOnEscape="true"
+       Title="Withdraw">
+    <BodyTemplate>
+        <CurrencyInput Locale="da-DK" TValue="decimal?" @bind-Value="WithdrawAmount" Placeholder="Enter Amount" EnableMinMax="true" Min="0.01M"></CurrencyInput>
+    </BodyTemplate>
+    <FooterTemplate><Button Color="ButtonColor.Primary" @onclick="ConfirmWithdrawModal">Confirm</Button></FooterTemplate>
+</Modal>
+
+<Modal @ref="_transferModal"
+       CloseOnEscape="true"
+       Title="Transfer">
+    <BodyTemplate>
+        <AutoComplete @bind-Value="TransferAccountId" TItem="AccountStatement"
+                      DataProvider="AccountsDataProvider"
+                      PropertyName="AccountId"
+                      Placeholder="Search or paste Account Id">
+        </AutoComplete>
+        <CurrencyInput Locale="da-DK" TValue="decimal?" @bind-Value="TransferAmount" Placeholder="Enter Amount" EnableMinMax="true" Min="0.01M"></CurrencyInput>
+    </BodyTemplate>
+    <FooterTemplate><Button Color="ButtonColor.Primary" @onclick="ConfirmTransferModal">Confirm</Button></FooterTemplate>
+</Modal>
 @code {
+    [Parameter] public string? Id { get; set; }
     private AccountStatement? _account;
 
+    private Progress Progress { get; set; } = default!;
+    private ProgressBar ProgressBar { get; set; } = default!;
+    
+    private string? ModalSelectedId { get; set; }
+    private Modal _setAccountModal = null!;
+    private decimal? DepositAmount { get; set; }
+    private Modal _depositModal = null!;
+    private decimal? WithdrawAmount { get; set; }
+    private Modal _withdrawModal = null!;
+    private decimal? TransferAmount { get; set; }
+    private string? TransferAccountId { get; set; }
+    private Modal _transferModal = null!;
+    
+    private List<Log> _logs { get; set; } = [];
+    private HubConnection? _logHub;
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+        _logHub = new HubConnectionBuilder().WithUrl($"{Options.Value.ApiUrl}/logs").Build();
+        _logHub.On<Log>("SendLogEntry", msg =>
+        {
+            _logs.Add(msg);
+            InvokeAsync(StateHasChanged);
+        });
+        await _logHub.StartAsync();
+    }
+
+    private async Task<AutoCompleteDataProviderResult<AccountStatement>> AccountsDataProvider(AutoCompleteDataProviderRequest<AccountStatement> request)
+    {
+        var results = await ApiService.SearchAccountsAsync(request.Filter.Value);
+        if (Id is not null && results?.Any() == true)
+        {
+            results = results.Where(r => r.AccountId != Id).ToList();
+        }
+        return new AutoCompleteDataProviderResult<AccountStatement>
+        {
+            Data = results
+        };
+    }
+    
     async Task CreateAccount()
     {
        var id = await ApiService.CreateAccountAsync();
-       _account = await ApiService.GetAccountAsync(id);
+       NavigateToAccount(id);
     }
 
     async Task Refresh()
     {
-        if (_account is not null)
+        if (Id is not null)
         {
-            _account = await ApiService.GetAccountAsync(_account.AccountId);
+            _account = await ApiService.GetAccountAsync(Id);
+            if (_account is null)
+            {
+                NavigateToAccount(null);
+            }
         }
     }
 
@@ -54,11 +200,90 @@
             case "Refresh":
                 await Refresh();
                 break;
+            case "SetAccount":
+                await SetAccount();
+                break;
+            case "Deposit":
+                await _depositModal.ShowAsync();
+                break;
+            case "Withdraw":
+                await _withdrawModal.ShowAsync();
+                break;
+            case "Transfer":
+                await _transferModal.ShowAsync();
+                break;
             default:
                 break;
         }
     }
+
+    private async Task ConfirmDepositModal()
+    {
+        await _depositModal.HideAsync();
+        if (Id is not null && DepositAmount > 0)
+        {
+            UpdateProgressBar(30, ProgressColor.Info, "Depositing...");
+            await Task.Delay(200);
+            await ApiService.Deposit(Id, DepositAmount.Value);
+            UpdateProgressBar(100, ProgressColor.Success, "Deposited");
+            DepositAmount = null;
+            await Refresh();
+            await Task.Delay(500);
+            UpdateProgressBar(0, ProgressColor.None, string.Empty);
+        }
+    }
+
+
+    private async Task ConfirmWithdrawModal()
+    {
+        await _withdrawModal.HideAsync();
+        if (Id is not null && WithdrawAmount > 0)
+        {
+            UpdateProgressBar(30, ProgressColor.Info, "Withdrawing...");
+            await Task.Delay(200);
+            await ApiService.Withdraw(Id, WithdrawAmount.Value);
+            UpdateProgressBar(100, ProgressColor.Success, "Withdrawn");
+            WithdrawAmount = null;
+            await Refresh();
+            await Task.Delay(500);
+            UpdateProgressBar(0, ProgressColor.None, string.Empty);
+        }
+    }
+
+    private async Task ConfirmTransferModal()
+    {
+        await _transferModal.HideAsync();
+        if (Id is not null && TransferAccountId is not null && TransferAmount > 0)
+        {
+            UpdateProgressBar(30, ProgressColor.Info, "Transferring...");
+            await Task.Delay(200);
+            await ApiService.Transfer(Id, TransferAccountId, TransferAmount.Value);
+            UpdateProgressBar(100, ProgressColor.Success, "Transferred");
+            TransferAmount = null;
+            TransferAccountId = null;
+            await Refresh();
+            await Task.Delay(500);
+            UpdateProgressBar(0, ProgressColor.None, string.Empty);
+        }
+    }
+    private void UpdateProgressBar(int width, ProgressColor color, string label)
+    {
+        Progress.Height = width > 0 ? 16 : 0;
+        ProgressBar.Label = label;
+        ProgressBar.Width = width;
+        ProgressBar.Color = color;
+    }
     
+    private async Task SetAccount()
+    {
+        await _setAccountModal.ShowAsync();
+    }
+
     
+
+    private void NavigateToAccount(string? id)
+    {
+        NavigationManager.NavigateTo($"/operations/{id}");
+    }
 
 }
