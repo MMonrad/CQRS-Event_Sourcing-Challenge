@@ -1,17 +1,19 @@
 # Table of contents
 
-* [Welcome](README.md)
+* [Pretty Much Incredible Bank](README.md)
 
-## Getting Started
+## API
 
-* [Quickstart](getting-started/quickstart.md)
-* [Publish your docs](getting-started/publish-your-docs.md)
+* [Introduction](api/introduction.md)
+* [Domain Model](api/domain-model.md)
+* [Persistence](api/persistence.md)
+* [Commands](api/commands.md)
+* [Events](api/events.md)
+* [Sagas](api/sagas.md)
+* [Subscribers](api/subscribers/README.md)
+  * [Balance Updated Subscriber](api/subscribers/balance-updated-subscriber.md)
+  * [Log Subscriber](api/subscribers/log-subscriber.md)
 
-## Basics
+## Blazor App
 
-* [Editor](basics/editor.md)
-* [Markdown](basics/markdown.md)
-* [Images & media](basics/images-and-media.md)
-* [Interactive blocks](basics/interactive-blocks.md)
-* [OpenAPI](basics/openapi.md)
-* [Integrations](basics/integrations.md)
+* [Page 2](blazor-app/page-2.md)
