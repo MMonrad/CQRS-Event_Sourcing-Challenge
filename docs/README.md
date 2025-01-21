@@ -1,11 +1,12 @@
 ---
 icon: piggy-bank
-cover: https://gitbookio.github.io/onboarding-template-images/header.png
+cover: >-
+  https://images.unsplash.com/photo-1565126035964-29e1c95b13f9?crop=entropy&cs=srgb&fm=jpg&ixid=M3wxOTcwMjR8MHwxfHNlYXJjaHw1fHxCYW5rJTIwVmF1bHR8ZW58MHx8fHwxNzM3NDU0OTI4fDA&ixlib=rb-4.0.3&q=85
 coverY: 0
 layout:
   cover:
     visible: true
-    size: full
+    size: hero
   title:
     visible: true
   description:
