@@ -33,4 +33,4 @@
 
 ## Blazor App
 
-* [Page 2](blazor-app/page-2.md)
+* [Demonstration](blazor-app/demonstration.md)
