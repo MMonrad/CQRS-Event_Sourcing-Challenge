@@ -196,12 +196,11 @@ else
         if (Id is not null && DepositAmount > 0)
         {
             UpdateProgressBar(30, ProgressColor.Info, "Depositing...");
-            await Task.Delay(200);
             await ApiService.Deposit(Id, DepositAmount.Value);
             UpdateProgressBar(100, ProgressColor.Success, "Deposited");
             DepositAmount = null;
             await Refresh();
-            await Task.Delay(500);
+            await Task.Delay(1000);
             UpdateProgressBar(0, ProgressColor.None, string.Empty);
         }
     }
@@ -213,12 +212,11 @@ else
         if (Id is not null && WithdrawAmount > 0)
         {
             UpdateProgressBar(30, ProgressColor.Info, "Withdrawing...");
-            await Task.Delay(200);
             await ApiService.Withdraw(Id, WithdrawAmount.Value);
             UpdateProgressBar(100, ProgressColor.Success, "Withdrawn");
             WithdrawAmount = null;
             await Refresh();
-            await Task.Delay(500);
+            await Task.Delay(1000);
             UpdateProgressBar(0, ProgressColor.None, string.Empty);
         }
     }
@@ -229,13 +227,12 @@ else
         if (Id is not null && TransferAccountId is not null && TransferAmount > 0)
         {
             UpdateProgressBar(30, ProgressColor.Info, "Transferring...");
-            await Task.Delay(200);
             await ApiService.Transfer(Id, TransferAccountId, TransferAmount.Value);
             UpdateProgressBar(100, ProgressColor.Success, "Transferred");
             TransferAmount = null;
             TransferAccountId = null;
             await Refresh();
-            await Task.Delay(500);
+            await Task.Delay(1000);
             UpdateProgressBar(0, ProgressColor.None, string.Empty);
         }
     }
@@ -256,7 +253,7 @@ else
 
     private void NavigateToAccount(string? id)
     {
-        NavigationManager.NavigateTo($"/operations/{id}");
+        NavigationManager.NavigateTo($"/operations/{id}", true, true);
     }
 
 }
