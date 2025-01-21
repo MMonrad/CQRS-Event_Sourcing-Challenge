@@ -2,14 +2,11 @@
 @using PrettyMuchIncredibleBankDemo.Models
 @using PrettyMuchIncredibleBankDemo.Services
 @using BlazorBootstrap
-@using Microsoft.AspNetCore.Mvc.RazorPages
-@using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Options
 @rendermode InteractiveServer
 @attribute [StreamRendering]
 @inject ApiService ApiService
 @inject NavigationManager NavigationManager
-@inject IOptions<PmiOptions> Options
 
 <PageTitle>Account Operations</PageTitle>
 <section>
@@ -68,21 +65,6 @@ else
         </Grid>
     </section>
 }
-
-<Accordion>
-    <AccordionItem Active="true">
-        <TitleTemplate>
-            <Icon Name="IconName.ClockHistory" Class="me-1"/> Event Feed
-        </TitleTemplate>
-        <Content>
-            <ul class="list-group">
-            @foreach (var log in _logs)
-            {
-                <li class="list-group-item">@log.DateTime.ToString("u")::@log.EntityName :=> @log.Message</li>
-            }</ul>
-        </Content>
-    </AccordionItem>
-</Accordion>
 
 <Modal @ref="_setAccountModal"
        Title="Set Account Id"
@@ -145,18 +127,9 @@ else
     private string? TransferAccountId { get; set; }
     private Modal _transferModal = null!;
     
-    private List<Log> _logs { get; set; } = [];
-    private HubConnection? _logHub;
     protected override async Task OnInitializedAsync()
     {
         await Refresh();
-        _logHub = new HubConnectionBuilder().WithUrl($"{Options.Value.ApiUrl}/logs").Build();
-        _logHub.On<Log>("SendLogEntry", msg =>
-        {
-            _logs.Add(msg);
-            InvokeAsync(StateHasChanged);
-        });
-        await _logHub.StartAsync();
     }
 
     private async Task<AutoCompleteDataProviderResult<AccountStatement>> AccountsDataProvider(AutoCompleteDataProviderRequest<AccountStatement> request)

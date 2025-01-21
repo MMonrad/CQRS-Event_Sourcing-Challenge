@@ -1,0 +1,63 @@
+﻿@using System.Collections.ObjectModel
+@using System.Collections.Specialized
+@using System.Globalization
+@using BlazorBootstrap
+@using PrettyMuchIncredibleBankDemo.Models
+@using PrettyMuchIncredibleBankDemo.Services
+@inject GlobalLogRepository GlobalLogRepository
+
+<div class="global-log-viewer">
+
+    <Accordion>
+        <AccordionItem Active="true">
+            <TitleTemplate>
+                <Icon Name="IconName.ClockHistory" Class="me-1"/>
+                Event Feed
+            </TitleTemplate>
+            <Content>
+                @if (Logs.Count == 0)
+                {
+                    <em><i>Awaiting logs...</i></em>
+                }
+                <ul class="list-group ">
+                    @foreach (var log in Logs.OrderByDescending(l => l.DateTime))
+                    {
+                        <li class="list-group-item fs-6 border-0 px-0">
+                            <Card>
+                                <CardBody>
+                                    <CardTitle>@log.DateTime.ToString("yyyy-MM-dd hh:mm:ss.fff", CultureInfo.InvariantCulture)<small><em><i>
+                                                    (@log.EntityName)</i></em></small></CardTitle>
+                                    <CardText>@log.Message</CardText>
+                                </CardBody>
+                            </Card>
+                        </li>
+                    }
+                </ul>
+            </Content>
+        </AccordionItem>
+    </Accordion>
+</div>
+
+@code {
+    private ObservableCollection<Log> Logs => GlobalLogRepository.Logs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GlobalLogRepository.InitializeAsync();
+        // Subscribe to the CollectionChanged event
+        Logs.CollectionChanged += HandleCollectionChanged;
+    }
+
+    private void HandleCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // Re-render the component when the collection changes
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe from the event to prevent memory leaks
+        Logs.CollectionChanged -= HandleCollectionChanged;
+    }
+
+}

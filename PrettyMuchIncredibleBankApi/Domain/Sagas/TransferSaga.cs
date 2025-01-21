@@ -10,7 +10,8 @@ namespace PMI.Domain.Sagas;
 
 public class TransferSaga : AggregateSaga<TransferSaga, TransferSagaId, TransferSagaLocator>,
     ISagaIsStartedBy<AccountAggregate, AccountId, TransferInitiatedEvent>,
-    ISagaHandles<AccountAggregate, AccountId, MoneyWithdrawnEvent>
+    ISagaHandles<AccountAggregate, AccountId, MoneyWithdrawnEvent>,
+    ISagaHandles<AccountAggregate, AccountId, MoneyDepositedEvent>
 {
     public TransferSaga(TransferSagaId id) : base(id)
     {
@@ -21,11 +22,18 @@ public class TransferSaga : AggregateSaga<TransferSaga, TransferSagaId, Transfer
     public TransactionId? TransactionId { get; set; }
     public decimal Amount { get; set; }
 
+    public Task HandleAsync(IDomainEvent<AccountAggregate, AccountId, MoneyDepositedEvent> domainEvent,
+        ISagaContext sagaContext, CancellationToken cancellationToken)
+    {
+        Complete();
+        return Task.CompletedTask;
+    }
+
     public Task HandleAsync(IDomainEvent<AccountAggregate, AccountId, MoneyWithdrawnEvent> domainEvent,
         ISagaContext sagaContext, CancellationToken cancellationToken)
     {
-        Publish(new DepositMoneyCommand(TargetAccountId!, TransactionId!, domainEvent.Timestamp, Amount));
-        Complete();
+        Publish(new DepositMoneyCommand(TargetAccountId!, TransactionId!, domainEvent.Timestamp, Amount,
+            domainEvent.Metadata.GetMetadataValue("transfer_id")));
         return Task.CompletedTask;
     }
 
@@ -34,7 +42,7 @@ public class TransferSaga : AggregateSaga<TransferSaga, TransferSagaId, Transfer
         ISagaContext sagaContext, CancellationToken cancellationToken)
     {
         var transferEvent = domainEvent.AggregateEvent;
-        Emit(new TransferSagaStartedEvent(transferEvent.SourceAccountId, transferEvent.TargetAccountId,
+        Emit(new TransferSagaStartedEvent(Id, transferEvent.SourceAccountId, transferEvent.TargetAccountId,
             transferEvent.TransactionId, transferEvent.Amount));
         Publish(new WithdrawMoneyCommand(transferEvent.SourceAccountId, transferEvent.TransactionId,
             transferEvent.Timestamp, transferEvent.Amount, domainEvent.Metadata.GetMetadataValue("transfer_id")));
