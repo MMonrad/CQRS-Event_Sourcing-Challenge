@@ -107,3 +107,7 @@ Build a simple bank API using CQRS and Event Sourcing principles in .NET 9. The 
 - Handling edge cases, such as insufficient funds or invalid account IDs.
 - Unit tests and documentation.
 
+
+#### **Submissions' Documentation**
+
+PMI - https://pmi-2.gitbook.io/pmi-bank

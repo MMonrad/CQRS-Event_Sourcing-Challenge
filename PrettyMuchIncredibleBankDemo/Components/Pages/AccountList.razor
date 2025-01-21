@@ -1,0 +1,99 @@
+﻿@page "/"
+@page "/list"
+@using PrettyMuchIncredibleBankDemo.Models
+@using PrettyMuchIncredibleBankDemo.Services
+@using BlazorBootstrap
+@rendermode InteractiveServer
+@attribute [StreamRendering]
+@inject ApiService ApiService
+@inject NavigationManager NavigationManager
+@inject GlobalLogRepository GlobalLogRepository
+
+<PageTitle>Account List</PageTitle>
+
+
+<h1 tabindex="-1">List of Accounts</h1>
+<div classs="lead mb-3">
+    <p>
+        <Button Color="ButtonColor.Warning" Size="ButtonSize.Medium" @onclick="Load">Refresh</Button>
+    </p>
+</div>
+
+@if (_accounts == null)
+{
+    <p><em>No data...</em></p>
+}
+else
+{
+    <Grid TItem="AccountStatement"
+          Class="table table-hover border-top"
+          Data="_accounts"
+          AllowDetailView="true"
+          AllowSorting="true"
+          FixedHeader="true"
+    >
+        <GridColumns>
+            <GridColumn TItem="AccountStatement" HeaderText="ID" PropertyName="AccountId" Sortable="false">
+                @context.AccountId
+            </GridColumn>
+            <GridColumn TItem="AccountStatement" HeaderText="Balance" SortKeySelector="x => x.Balance">
+                @context.Balance.ToString("C2")
+            </GridColumn>
+            <GridColumn TItem="AccountStatement" HeaderText="Action" PropertyName="AccountId" Filterable="false" Sortable="false">
+                <ChildContent>
+                    <Button Color="ButtonColor.Primary" Size="ButtonSize.ExtraSmall"
+                            @onclick="() => { NavigateToAccount(context.AccountId); }">
+                        <Icon Size="IconSize.None"
+                              Name="IconName.Eye">Preview
+                        </Icon>
+                    </Button>
+                </ChildContent>
+            </GridColumn>
+        </GridColumns>
+        <GridDetailView TItem="AccountStatement">
+            <Grid TItem="Transaction"
+                  Class="table table-hover border-top"
+                  Data="context.Transactions"
+                  EmptyText="No transactions"
+                  FixedHeader="true"
+                  AllowSorting="true">
+                <GridColumns>
+                    <GridColumn TItem="Transaction" Context="transaction" HeaderText="Date" PropertyName="Timestamp"
+                                SortKeySelector="x => x.Timestamp">
+                        @transaction.Timestamp.ToString("u")
+                    </GridColumn>
+                    <GridColumn TItem="Transaction" Context="transaction" HeaderText="Type"
+                                PropertyName="TransactionType" SortKeySelector="x=>x.TransactionType">
+                        @Enum.GetName(typeof(TransactionType), transaction.TransactionType)
+                    </GridColumn>
+                    <GridColumn TItem="Transaction" Context="transaction" HeaderText="Amount" PropertyName="Amount">
+                        @transaction.Amount.ToString("C2")
+                    </GridColumn>
+                </GridColumns>
+            </Grid>
+        </GridDetailView>
+    </Grid>
+}
+@code {
+    private List<AccountStatement>? _accounts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    async Task Load()
+    {
+        var result = await ApiService.GetAccountsAsync();
+        if (result?.Any() == true)
+        {
+            _accounts = result;
+        }
+    }
+
+
+    private void NavigateToAccount(string? id)
+    {
+        NavigationManager.NavigateTo($"/operations/{id}");
+    }
+}

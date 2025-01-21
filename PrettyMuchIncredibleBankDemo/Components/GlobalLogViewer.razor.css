@@ -1,0 +1,8 @@
+﻿.global-log-viewer {
+    overflow: auto;
+    position: sticky;
+    top: 0;
+    border-left: 1px solid rgb(214, 213, 213);
+    padding: 1em;
+    height: 100vh;
+}
