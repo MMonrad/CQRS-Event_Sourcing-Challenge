@@ -22,12 +22,13 @@ public class AccountAggregate : AggregateRoot<AccountAggregate, AccountId>
         return ExecutionResult.Success();
     }
 
-    public IExecutionResult Deposit(decimal amount, TransactionId transactionId, DateTimeOffset timestamp)
+    public IExecutionResult Deposit(decimal amount, TransactionId transactionId, DateTimeOffset timestamp,
+        string? transferId = null)
     {
         var transaction = new Transaction(transactionId, Id, TransactionType.Deposit, timestamp
             , amount);
         new TransactionSpecification().ThrowDomainErrorIfNotSatisfied(transaction);
-        Emit(new MoneyDepositedEvent(transaction));
+        Emit(new MoneyDepositedEvent(transaction), transferId is not null ? new Metadata(new KeyValuePair<string, string>("transfer_id", transferId)) : null);
         return ExecutionResult.Success();
     }
 

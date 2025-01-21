@@ -12,6 +12,7 @@ builder.Services.AddOptions<PmiOptions>().Bind(builder.Configuration.GetSection(
 builder.Services.AddHttpClient();
 builder.Services.AddRazorPages().AddRazorRuntimeCompilation();
 builder.Services.AddBlazorBootstrap();
+builder.Services.AddSingleton<GlobalLogRepository>();
 
 var app = builder.Build();
 

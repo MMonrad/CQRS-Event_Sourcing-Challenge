@@ -1,4 +1,5 @@
 ﻿@page "/"
+@page "/list"
 @using PrettyMuchIncredibleBankDemo.Models
 @using PrettyMuchIncredibleBankDemo.Services
 @using BlazorBootstrap
@@ -6,6 +7,7 @@
 @attribute [StreamRendering]
 @inject ApiService ApiService
 @inject NavigationManager NavigationManager
+@inject GlobalLogRepository GlobalLogRepository
 
 <PageTitle>Account List</PageTitle>
 
@@ -72,7 +74,6 @@ else
         </GridDetailView>
     </Grid>
 }
-
 @code {
     private List<AccountStatement>? _accounts;
 

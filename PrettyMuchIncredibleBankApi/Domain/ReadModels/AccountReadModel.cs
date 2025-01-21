@@ -15,15 +15,12 @@ public class AccountReadModel : IReadModel,
     public decimal Balance { get; private set; }
     public List<Transaction> Transactions { get; private set; }
 
-    private int Version { get; set; }
-
     public Task ApplyAsync(IReadModelContext context,
         IDomainEvent<AccountAggregate, AccountId, AccountCreatedEvent> domainEvent, CancellationToken cancellationToken)
     {
         AccountId = (AccountId)domainEvent.GetIdentity();
         Balance = 0;
         Transactions = [];
-        Version = domainEvent.AggregateSequenceNumber;
         return Task.CompletedTask;
     }
 
@@ -33,7 +30,6 @@ public class AccountReadModel : IReadModel,
         AccountId = (AccountId)domainEvent.GetIdentity();
         Transactions.Add(domainEvent.AggregateEvent.Transaction);
         Balance += domainEvent.AggregateEvent.Transaction.Amount;
-        Version = domainEvent.AggregateSequenceNumber;
         return Task.CompletedTask;
     }
 
@@ -43,7 +39,6 @@ public class AccountReadModel : IReadModel,
         AccountId = (AccountId)domainEvent.GetIdentity();
         Transactions.Add(domainEvent.AggregateEvent.Transaction);
         Balance -= domainEvent.AggregateEvent.Transaction.Amount;
-        Version = domainEvent.AggregateSequenceNumber;
         return Task.CompletedTask;
     }
 
@@ -51,6 +46,6 @@ public class AccountReadModel : IReadModel,
     {
         return new AccountStatement(AccountId.Value, Balance,
             Transactions.Select(t => new TransactionStatement(t.Id.Value, t.TransactionType, t.Timestamp, t.Amount))
-                .ToList(), Version);
+                .ToList());
     }
 }
